@@ -88,11 +88,8 @@ if (isset($_SESSION['id_user'])) {
         <!--link rel="stylesheet" href="dist/tagsinput/app.css"-->
 
 
-        <!-- MDB -->
-        <link href="dist/mdb5/css/mdb.min.css" rel="stylesheet">
-
-        <!-- Custom css -->
-        <link rel="stylesheet" href="css/custom.css">
+        <!-- Custom -->
+        <link href="assets/css/navbar-styles.css" rel="stylesheet">
 
         <style>
             /* FULL SCREEN */
