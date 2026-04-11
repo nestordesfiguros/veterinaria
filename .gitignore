@@ -1,0 +1,4 @@
+lib/error_log
+error_log
+admin/error_log
+admin/vendor/*
