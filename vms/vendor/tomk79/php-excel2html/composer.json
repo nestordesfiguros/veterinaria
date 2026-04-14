@@ -1,0 +1,36 @@
+{
+    "name": "tomk79/php-excel2html",
+    "description": "Convert Excel(*.xlsx) to HTML table. with PHPExcel.",
+    "keywords": [],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tomoya Koyanagi",
+            "email": "tomk79@gmail.com"
+        }
+    ],
+    "scripts":{
+        "test": [
+            "php ./vendor/phpunit/phpunit/phpunit"
+        ]
+    } ,
+    "repositories": [
+    ],
+    "require": {
+        "php": ">=7.2",
+        "tomk79/filesystem": "1.*",
+        "michelf/php-markdown": "^1.6.0",
+        "phpoffice/phpspreadsheet": "^1.13"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.8.0"
+    },
+    "autoload": {
+        "files": [
+            "php/main.php",
+            "php/render_html_by_csv.php",
+            "php/render_html_by_excel.php"
+        ]
+    }
+
+}

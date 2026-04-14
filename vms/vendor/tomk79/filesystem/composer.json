@@ -1,0 +1,37 @@
+{
+    "name": "tomk79/filesystem",
+    "description": "Simple filesystem utility for PHP.",
+    "keywords": ["filesystem"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tomoya Koyanagi",
+            "email": "tomk79@gmail.com",
+            "homepage": "https://www.pxt.jp/"
+        }
+    ],
+    "scripts":{
+        "test": [
+            "@php ./vendor/phpunit/phpunit/phpunit"
+        ] ,
+        "documentation": [
+            "@php ./phpDocumentor.phar --title \"tomk79/filesystem v1.3.0 API Document\" -d \"./php/\" -t \"./docs/\""
+        ]
+    },
+    "config": {
+        "process-timeout": 0
+    },
+    "require": {
+        "php": ">=7.3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "tomk79\\": [
+                "php"
+            ]
+        }
+    }
+}
