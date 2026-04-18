@@ -1,41 +1,21 @@
-/* * Archivo: css/navbar-styles.css
- * Descripción: Hoja de estilos centralizada para la barra de navegación.
- */
+/* ========================================================================== */
+/* Archivo: assets/css/navbar-styles.css                                      */
+/* Ruta: assets/css/navbar-styles.css                                         */
+/* ========================================================================== */
 
 :root {
-    /* =========================================
-       1. VARIABLES DE COLOR (BOTONES)
-       ========================================= */
-    --nav-text-color: #032759;          /* Color principal (íconos inactivos) */
-    --nav-text-btn-color: #032759;      /* Color del texto de los botones inactivos */
-    --nav-hover-bg: #E3EBF7;            /* Fondo al pasar el cursor (hover) */
-    --nav-active-bg: #D2E3FA;           /* Fondo del botón activo (azul claro/infantil) */
-    --nav-active-text: #000000;         /* Texto e ícono del botón activo */
-    
-    /* =========================================
-       2. TAMAÑOS Y ESPACIOS (BOTONES)
-       ========================================= */
-    --nav-font-size-icon: 1.3333em;     /* Tamaño del ícono (equivalente a fa-lg) */
-    --nav-font-size-text: 11px;         /* Tamaño del texto debajo del ícono */
-    --nav-gap-icon-text: 10px;          /* Espacio entre el ícono y el texto */
-    --nav-border-radius: 8px;           /* Bordes redondeados de los botones */
-    
-    /* =========================================
-       3. TEXTO DE BIENVENIDA Y USUARIO
-       ========================================= */
-    --nav-welcome-color: #333333;       /* Color del texto "Bienvenido:" */
-    --nav-welcome-font-size: 13px;      /* Tamaño del texto "Bienvenido:" */
-    
-    --nav-username-color: #000000;      /* Color específico para el nombre del usuario */
-    --nav-username-font-size: 14px;     /* Tamaño específico para el nombre del usuario */
-
-    /* =========================================
-       4. MENÚ RESPONSIVO (CONTENEDOR)
-       ========================================= */
-    --nav-toggler-border: rgba(3, 39, 89, 0.2); /* Color del borde del botón menú */
-    --nav-toggler-focus-shadow: rgba(3, 39, 89, 0.25); /* Sombra al hacer clic en el menú */
-
-    --nav-transition: all 0.3s ease;    /* Transición suave para los efectos */
+    --navegacion_color_icono: #032759;
+    --navegacion_color_texto: #032759;
+    --navegacion_color_fondo_encima: #E3EBF7;
+    --navegacion_color_fondo_activo: #D2E3FA;
+    --navegacion_color_texto_activo: #000000;
+    --navegacion_tamano_icono: 1.15rem;
+    --navegacion_tamano_texto: 10px;
+    --navegacion_radio_borde: 8px;
+    --navegacion_color_bienvenida: #333333;
+    --navegacion_tamano_bienvenida: 12px;
+    --navegacion_color_usuario: #000000;
+    --navegacion_tamano_usuario: 13px;
 }
 
 /* =========================================
@@ -44,73 +24,72 @@
 .nav-btn-corporate {
     background-color: transparent;
     border: 1px solid transparent;
-    transition: var(--nav-transition);
-    border-radius: var(--nav-border-radius);
+    transition: all 0.25s ease;
+    border-radius: var(--navegacion_radio_borde);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--nav-gap-icon-text);
-    min-width: 80px; 
-    padding: 10px 8px; 
+    gap: 4px;
+    min-width: 80px;
+    padding: 10px 8px;
     text-decoration: none;
 }
 
 .nav-btn-corporate i {
-    color: var(--nav-text-color); 
-    font-size: var(--nav-font-size-icon);
-    transition: color 0.3s ease;
+    color: var(--navegacion_color_icono);
+    font-size: var(--navegacion_tamano_icono);
+    transition: color 0.25s ease;
 }
 
 .nav-btn-corporate p {
-    color: var(--nav-text-btn-color);
-    font-size: var(--nav-font-size-text); 
-    margin: 0; 
+    color: var(--navegacion_color_texto);
+    font-size: var(--navegacion_tamano_texto);
+    margin: 0;
     font-weight: 600;
     line-height: 1;
     text-transform: uppercase;
 }
 
 .nav-btn-corporate:hover {
-    background-color: var(--nav-hover-bg); 
+    background-color: var(--navegacion_color_fondo_encima);
 }
 
 .nav-btn-corporate.active {
-    background-color: var(--nav-active-bg); 
+    background-color: var(--navegacion_color_fondo_activo);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
 }
 
 .nav-btn-corporate.active i,
 .nav-btn-corporate.active p {
-    color: var(--nav-active-text); 
+    color: var(--navegacion_color_texto_activo);
 }
 
 /* =========================================
    ESTILOS DEL TEXTO DE BIENVENIDA
    ========================================= */
 .nav-welcome-text span {
-    color: var(--nav-welcome-color);
-    font-size: var(--nav-welcome-font-size);
+    color: var(--navegacion_color_bienvenida);
+    font-size: var(--navegacion_tamano_bienvenida);
 }
 
 .nav-welcome-text b.nav-username {
-    color: var(--nav-username-color);
-    font-size: var(--nav-username-font-size);
+    color: var(--navegacion_color_usuario);
+    font-size: var(--navegacion_tamano_usuario);
     font-weight: 700;
 }
 
 /* =========================================
-   5. MENÚ RESPONSIVO (ICONO DE HAMBURGUESA)
+   MENÚ RESPONSIVO (ICONO DE HAMBURGUESA)
    ========================================= */
 .navbar-toggler {
-    border-color: var(--nav-toggler-border) !important;
+    border-color: rgba(3, 39, 89, 0.18) !important;
 }
 
 .navbar-toggler:focus {
-    box-shadow: 0 0 0 0.25rem var(--nav-toggler-focus-shadow) !important;
+    box-shadow: 0 0 0 0.25rem rgba(3, 39, 89, 0.18) !important;
 }
 
-/* Forzar el color del ícono de la hamburguesa a tu azul corporativo (#032759) */
 .navbar-light .navbar-toggler-icon {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%283, 39, 89, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
 }

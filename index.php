@@ -1,8 +1,8 @@
 <?php session_start(); ?>
 <!DOCTYPE html>
 <?php
-include 'admin/php/menu_login.php';
-include 'admin/lib/clsConsultas.php';
+include 'vms/php/menu_login.php';
+include 'vms/lib/clsConsultas.php';
 $clsConsulta = new Consultas();
 
 ?>
@@ -12,7 +12,7 @@ $clsConsulta = new Consultas();
     <!--base href="<?php // echo $base; 
                     ?>"-->
     <meta charset="utf-8">
-    <title>Catsa Comercial Abarrotera </title>
+    <title>VMS - Veterinary Management System </title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="" name="keywords">
     <meta content="" name="description">
@@ -474,13 +474,13 @@ $clsConsulta = new Consultas();
                     var datos = $("#formAcceso").serialize();
                     $.ajax({
                         type: "POST",
-                        url: "admin/lib/verifica.php",
+                        url: "vms/lib/verifica.php",
                         data: datos,
                         success: function(data) {
                             // console.log(data);
                             var json = JSON.parse(data);
                             if (json.existe === "true" || json.existe === true) {
-                                location.href = "admin/inicio";
+                                location.href = "vms/inicio";
                             } else {
                                 $("#mensaje").show();
 

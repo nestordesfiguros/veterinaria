@@ -42,7 +42,7 @@ if (isset($_SESSION['id_user'])) {
         <base href="<?php echo $base; ?>">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Administrador | Abarrotes</title>
+        <title>Administrador | VMS</title>
         <!-- Favicon -->
         <!-- <link rel="icon" type="image/png" href="img/favicon.png?update=<?php echo rand(); ?>"> -->
         <!-- Favicon -->
@@ -90,6 +90,43 @@ if (isset($_SESSION['id_user'])) {
 
         <!-- Custom -->
         <link href="assets/css/navbar-styles.css" rel="stylesheet">
+        <link href="assets/css/style-modulos.css" rel="stylesheet">
+
+        <?php
+        $cssVariablesDinamicas = '';
+
+        $sqlEstilosDinamicos = "SELECT clave, valor, unidad
+                        FROM configuracion_estilos
+                        WHERE estatus = 'activo'
+                        ORDER BY orden ASC, id ASC";
+        $resEstilosDinamicos = $clsConsulta->consultaGeneral($sqlEstilosDinamicos);
+
+        if ($clsConsulta->numrows > 0) {
+            foreach ($resEstilosDinamicos as $estilo) {
+                $clave  = trim((string)($estilo['clave'] ?? ''));
+                $valor  = trim((string)($estilo['valor'] ?? ''));
+                $unidad = trim((string)($estilo['unidad'] ?? ''));
+
+                if ($clave !== '' && $valor !== '') {
+                    if ($unidad !== '' && is_numeric($valor)) {
+                        $cssVariablesDinamicas .= '--' . $clave . ': ' . $valor . $unidad . ';' . PHP_EOL;
+                    } else {
+                        $cssVariablesDinamicas .= '--' . $clave . ': ' . $valor . ';' . PHP_EOL;
+                    }
+                }
+            }
+        }
+
+        if ($cssVariablesDinamicas !== '') {
+        ?>
+            <style>
+                :root {
+                    <?= $cssVariablesDinamicas; ?>
+                }
+            </style>
+        <?php
+        }
+        ?>
 
         <style>
             /* FULL SCREEN */
@@ -224,52 +261,6 @@ Toolt tips personalizados utilizando data-title
         </div>
         <!-- ./wrapper -->
 
-        <!-- Modal Empresas -->
-        <div class="modal fade" id="modalEmpresas" tabindex="-1" data-bs-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog  modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">Selecciona la empresa a trabajar</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3 p-2 bg-light border rounded small">
-                            <div> <strong>Empresa actual:</strong></div>
-                            <div><?php if (isset($_SESSION['razon_social'])) {
-                                        echo htmlspecialchars($_SESSION['razon_social']);
-                                    } else {
-                                        echo 'No hay empresa seleccionada';
-                                    } ?></div>
-                        </div>
-
-                        <input type="text" class="form-control mb-2" id="filtroEmpresas" placeholder="Buscar empresa">
-
-                        <select class="form-select" id="empresaSelect" size="8">
-                            <?php
-                            echo '<option value="" selected disabled>Selecciona una empresa</option>';
-                            $con = "SELECT * FROM cat_empresas";
-                            $rs = $clsConsulta->consultaGeneral($con);
-                            if ($clsConsulta->numrows > 0) {
-                                foreach ($rs as $v => $val) {
-                                    if ($val['id'] != ($_SESSION['id_empresa'] ?? 0)) {
-                                        echo '<option value="' . $val['id'] . '">' . htmlspecialchars($val['razon_social']) . '</option>';
-                                    }
-                                }
-                            }
-                            ?>
-                        </select>
-                    </div>
-
-                    <div class="modal-footer">
-                        <?php if (isset($_SESSION['id_empresa'])): ?>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-primary" onclick="fnCambiarEmpresa()">Seleccionar empresa</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
 
         <!-- jQuery -->
         <!-- <script src="assets/js/jquery-3.6.3.min.js"></script> -->
@@ -302,12 +293,6 @@ Toolt tips personalizados utilizando data-title
         <script src="assets/js/validate/additional-methods.min.js"></script>
         <script src="assets/js/validate/messages_es.min.js"></script>
 
-        <!-- MDB solo si lo necesitas para otros componentes (no su datatable) -->
-        <!-- <script src="dist/mdb5/js/mdb.min.js"></script> -->
-
-
-        <!-- MDB -->
-        <!-- <script type="text/javascript" src="dist/mdb5/js/mdb.min.js"></script> -->
 
         <script>
             // Inicializar tooltips (una sola vez)

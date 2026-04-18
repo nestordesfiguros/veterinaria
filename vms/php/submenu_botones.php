@@ -1,5 +1,9 @@
 <?php
-// php/submenu_botones.php
+/* ========================================================================== */
+/* Archivo: php/submenu_botones.php                                           */
+/* Ruta: php/submenu_botones.php                                              */
+/* ========================================================================== */
+
 // Requiere: lib/permisosHijos.php y $_SESSION['modulos'], $_SESSION['permisos']
 // Parámetros opcionales (defínelos ANTES de incluir este archivo):
 //   $__archivoActual   (string)  Archivo base actual (p.ej. $nav)
@@ -9,16 +13,13 @@
 //   $__bgWrapperClass  (string)  Clases para wrapper (ej. "bg-light border-bottom")
 //   $__btnColor        (string)  Clase de color base para botones inactivos (ej. 'btn-light')
 
-// var_dump($_SESSION['modulos']);
-// echo '<br>';
-// var_dump($_SESSION['permisos']);
 if (!class_exists('permisosHijos')) require_once __DIR__ . '/../lib/clsPermisosHijos.php';
 
 $__archivoActual  = $__archivoActual  ?? ($nav ?? '');
 $__idPadreForzado = $__idPadreForzado ?? null;
-$__layout         = $__layout         ?? 'franja';      // 'franja' o 'grid'
+$__layout         = $__layout         ?? 'franja';
 $__btnSize        = $__btnSize        ?? 'btn-square-sm';
-$__bgWrapperClass = $__bgWrapperClass ?? 'bg-light border-bottom';
+$__bgWrapperClass = $__bgWrapperClass ?? '';
 $__btnColor       = $__btnColor       ?? 'btn-light';
 
 // 1) Determinar padre activo
@@ -26,26 +27,27 @@ $idActivo = permisosHijos::detectarModuloActivoPorArchivo((string)$__archivoActu
 $idPadre  = $__idPadreForzado ?: permisosHijos::obtenerPadre($idActivo);
 if (!$idPadre) return;
 
-//echo 'prueba padre: ' . $idPadre . '<br>';
-
 // 2) Obtener hijos visibles
 $hijos = permisosHijos::obtenerHijosVisibles($idPadre);
 if (empty($hijos)) return;
 
 // 3) Render según layout
 if ($__layout === 'franja'): ?>
-    <div class="<?php echo htmlspecialchars($__bgWrapperClass); ?>">
+    <div class="<?php echo htmlspecialchars($__bgWrapperClass); ?> submenu-franja-wrapper">
         <div class="container py-2">
-            <div class="d-flex gap-2 flex-wrap">
+            <div class="submenu-franja-container">
                 <?php foreach ($hijos as $idHijo):
                     $h = $_SESSION['modulos'][$idHijo];
-                    $activo = (!empty($h['archivo']) && $h['archivo'] === $__archivoActual) ? 'btn-secondary' : $__btnColor;
-                    $icono  = !empty($h['icono']) ? '<i class="fa-2x ' . $h['icono'] . ' mt-2"></i>' : '';
+                    $esActivo = (!empty($h['archivo']) && $h['archivo'] === $__archivoActual);
+                    $claseActivo = $esActivo ? ' submenu-active' : '';
+                    $icono = !empty($h['icono'])
+                        ? '<i class="submenu-franja-icon ' . htmlspecialchars($h['icono']) . '"></i>'
+                        : '';
                 ?>
                     <div class="text-center">
-                        <a class="btn <?php echo $activo, ' ', $__btnSize; ?>" href="<?php echo htmlspecialchars($h['archivo'] ?: '#'); ?>">
+                        <a class="btn submenu-franja-btn<?php echo $claseActivo; ?>" href="<?php echo htmlspecialchars($h['archivo'] ?: '#'); ?>">
                             <?php echo $icono; ?>
-                            <p style="font-size:10px;"><?php echo strtoupper(htmlspecialchars($h['nombre'])); ?></p>
+                            <p class="submenu-franja-text"><?php echo strtoupper(htmlspecialchars($h['nombre'])); ?></p>
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -53,18 +55,21 @@ if ($__layout === 'franja'): ?>
         </div>
     </div>
 
-<?php else: // 'grid' dentro de una card/vista 
-?>
+<?php else: ?>
     <div class="row justify-content-center">
         <?php foreach ($hijos as $idHijo):
             $h = $_SESSION['modulos'][$idHijo];
-            $icono = !empty($h['icono']) ? '<i class=" ' . $h['icono'] . ' fa-2x"></i>' : '<i class="fa-2x fa-circle"></i>';
+            $esActivo = (!empty($h['archivo']) && $h['archivo'] === $__archivoActual);
+            $claseActivo = $esActivo ? ' submenu-active' : '';
+            $icono = !empty($h['icono'])
+                ? '<i class="submenu-grid-icon ' . htmlspecialchars($h['icono']) . '"></i>'
+                : '<i class="submenu-grid-icon fa fa-circle"></i>';
         ?>
-            <div class="col-lg-2 col-sm-3 col-6 mt-2 pe-1">
+            <div class="col-lg-2 col-sm-3 col-6 mt-2 pe-1 submenu-grid-item">
                 <a class="nav-link" href="<?php echo htmlspecialchars($h['archivo'] ?: '#'); ?>">
-                    <button type="button" class="btn btn-secondary btn-square-xl w-100">
+                    <button type="button" class="btn submenu-grid-btn<?php echo $claseActivo; ?>">
                         <?php echo $icono; ?>
-                        <p class="f-small mt-2"><?php echo htmlspecialchars($h['nombre']); ?></p>
+                        <p class="submenu-grid-text"><?php echo htmlspecialchars($h['nombre']); ?></p>
                     </button>
                 </a>
             </div>
