@@ -14,6 +14,201 @@ $time = date("H:i:s");
 if (isset($_SESSION['id_user'])) {
     require('php/menu.php');
 
+    if (!function_exists('vmsTablaExiste')) {
+        function vmsTablaExiste($clsConsulta, string $tabla): bool
+        {
+            $tabla = preg_replace('/[^a-zA-Z0-9_]/', '', $tabla);
+            if ($tabla === '') {
+                return false;
+            }
+
+            $clsConsulta->consultaGeneral("SHOW TABLES LIKE '{$tabla}'");
+            return ((int)$clsConsulta->numrows > 0);
+        }
+    }
+
+    if (!function_exists('vmsCargarConfiguracionModulos')) {
+        function vmsCargarConfiguracionModulos($clsConsulta): array
+        {
+            $mapaPorId = [];
+            $mapaPorArchivo = [];
+
+            if (!vmsTablaExiste($clsConsulta, 'configuracion_modulos')) {
+                return [
+                    'por_id' => $mapaPorId,
+                    'por_archivo' => $mapaPorArchivo
+                ];
+            }
+
+            $sql = "
+                SELECT
+                    cm.modulo_id,
+                    cm.habilitado,
+                    cm.visible_menu,
+                    cm.visible_busqueda,
+                    cm.obligatorio,
+                    cm.forzar_oculto_si_padre_off,
+                    cm.orden_override,
+                    cm.paquete_origen,
+                    m.archivo,
+                    m.modulo_padre
+                FROM configuracion_modulos cm
+                INNER JOIN modulos m ON m.id = cm.modulo_id
+            ";
+            $res = $clsConsulta->consultaGeneral($sql);
+
+            if ((int)$clsConsulta->numrows > 0) {
+                foreach ($res as $fila) {
+                    if (!is_array($fila) || !isset($fila['modulo_id'])) {
+                        continue;
+                    }
+
+                    $moduloId = (int)$fila['modulo_id'];
+                    $filaNormalizada = [
+                        'modulo_id' => $moduloId,
+                        'habilitado' => isset($fila['habilitado']) ? (int)$fila['habilitado'] : 1,
+                        'visible_menu' => isset($fila['visible_menu']) ? (int)$fila['visible_menu'] : 1,
+                        'visible_busqueda' => isset($fila['visible_busqueda']) ? (int)$fila['visible_busqueda'] : 1,
+                        'obligatorio' => isset($fila['obligatorio']) ? (int)$fila['obligatorio'] : 0,
+                        'forzar_oculto_si_padre_off' => isset($fila['forzar_oculto_si_padre_off']) ? (int)$fila['forzar_oculto_si_padre_off'] : 1,
+                        'orden_override' => $fila['orden_override'] ?? null,
+                        'paquete_origen' => $fila['paquete_origen'] ?? null,
+                        'archivo' => $fila['archivo'] ?? '',
+                        'modulo_padre' => !empty($fila['modulo_padre']) ? (int)$fila['modulo_padre'] : null
+                    ];
+
+                    $mapaPorId[$moduloId] = $filaNormalizada;
+
+                    if (!empty($filaNormalizada['archivo'])) {
+                        $mapaPorArchivo[$filaNormalizada['archivo']] = $filaNormalizada;
+                    }
+                }
+            }
+
+            return [
+                'por_id' => $mapaPorId,
+                'por_archivo' => $mapaPorArchivo
+            ];
+        }
+    }
+
+    if (!function_exists('vmsResolverModuloIdPorArchivo')) {
+        function vmsResolverModuloIdPorArchivo(string $archivo, array $modulosSesion = [], array $configuracionPorArchivo = []): ?int
+        {
+            if ($archivo === '') {
+                return null;
+            }
+
+            if (isset($configuracionPorArchivo[$archivo]['modulo_id'])) {
+                return (int)$configuracionPorArchivo[$archivo]['modulo_id'];
+            }
+
+            foreach ($modulosSesion as $idModulo => $modulo) {
+                if (($modulo['archivo'] ?? '') === $archivo) {
+                    return (int)$idModulo;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    if (!function_exists('vmsObtenerPadreModulo')) {
+        function vmsObtenerPadreModulo(int $idModulo, array $configuracionPorId = [], array $modulosSesion = []): ?int
+        {
+            if (isset($configuracionPorId[$idModulo]['modulo_padre']) && !empty($configuracionPorId[$idModulo]['modulo_padre'])) {
+                return (int)$configuracionPorId[$idModulo]['modulo_padre'];
+            }
+
+            if (isset($modulosSesion[$idModulo]['modulo_padre']) && !empty($modulosSesion[$idModulo]['modulo_padre'])) {
+                return (int)$modulosSesion[$idModulo]['modulo_padre'];
+            }
+
+            return null;
+        }
+    }
+
+    if (!function_exists('vmsModuloHabilitadoPorInstalacion')) {
+        function vmsModuloHabilitadoPorInstalacion(int $idModulo, array $configuracionPorId = [], array $modulosSesion = [], bool $validarJerarquia = true): bool
+        {
+            if ($idModulo <= 0) {
+                return true;
+            }
+
+            if (isset($configuracionPorId[$idModulo]) && (int)$configuracionPorId[$idModulo]['habilitado'] !== 1) {
+                return false;
+            }
+
+            if ($validarJerarquia && isset($configuracionPorId[$idModulo])) {
+                $forzar = (int)($configuracionPorId[$idModulo]['forzar_oculto_si_padre_off'] ?? 1);
+
+                if ($forzar === 1) {
+                    $idPadre = vmsObtenerPadreModulo($idModulo, $configuracionPorId, $modulosSesion);
+
+                    if ($idPadre !== null) {
+                        if (isset($configuracionPorId[$idPadre]) && (int)$configuracionPorId[$idPadre]['habilitado'] !== 1) {
+                            return false;
+                        }
+
+                        if ($idPadre !== $idModulo) {
+                            return vmsModuloHabilitadoPorInstalacion($idPadre, $configuracionPorId, $modulosSesion, true);
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
+
+    if (!function_exists('vmsModuloVisibleEnMenuPorInstalacion')) {
+        function vmsModuloVisibleEnMenuPorInstalacion(int $idModulo, array $configuracionPorId = [], array $modulosSesion = []): bool
+        {
+            if (!vmsModuloHabilitadoPorInstalacion($idModulo, $configuracionPorId, $modulosSesion, true)) {
+                return false;
+            }
+
+            if (isset($configuracionPorId[$idModulo]) && (int)$configuracionPorId[$idModulo]['visible_menu'] !== 1) {
+                return false;
+            }
+
+            $idPadre = vmsObtenerPadreModulo($idModulo, $configuracionPorId, $modulosSesion);
+            if ($idPadre !== null && isset($configuracionPorId[$idModulo])) {
+                $forzar = (int)($configuracionPorId[$idModulo]['forzar_oculto_si_padre_off'] ?? 1);
+
+                if ($forzar === 1 && isset($configuracionPorId[$idPadre])) {
+                    if ((int)$configuracionPorId[$idPadre]['habilitado'] !== 1) {
+                        return false;
+                    }
+                    if ((int)$configuracionPorId[$idPadre]['visible_menu'] !== 1) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
+
+    $configuracionModulosContexto = vmsCargarConfiguracionModulos($clsConsulta);
+    $configuracionModulosMapa = $configuracionModulosContexto['por_id'];
+    $configuracionModulosPorArchivo = $configuracionModulosContexto['por_archivo'];
+
+    $mensajeModuloDeshabilitado = '';
+    $idModuloNavActual = null;
+
+    if (isset($nav) && trim((string)$nav) !== '') {
+        $idModuloNavActual = vmsResolverModuloIdPorArchivo((string)$nav, $_SESSION['modulos'] ?? [], $configuracionModulosPorArchivo);
+
+        if (
+            $idModuloNavActual !== null &&
+            !vmsModuloHabilitadoPorInstalacion($idModuloNavActual, $configuracionModulosMapa, $_SESSION['modulos'] ?? [], true)
+        ) {
+            $mensajeModuloDeshabilitado = 'El módulo solicitado no está habilitado en esta instalación.';
+            $navegar = '404.php';
+        }
+    }
+
     include 'lib/clsFechas.php';
     $clsFecha = new Fechas();
 
@@ -29,9 +224,8 @@ if (isset($_SESSION['id_user'])) {
     $logo       = 'no_img.png?update=rand()';
     $favicon    = 'no_favicon.png?update=rand()';
     $titulo     = 'Sin titulo';
-    $clickAviso = ' onclick="avisoRol();"'; // funcion de click para los avisos de los permisos
+    $clickAviso = ' onclick="avisoRol();"';
 
-    // Mostrar modal si no hay razón social y hay múltiples empresas disponibles
     $mostrar_modal = (!isset($_SESSION['razon_social']) || empty($_SESSION['razon_social']))
         && (count($_SESSION['empresas_disponibles'] ?? []) > 1);
 ?>
@@ -43,52 +237,33 @@ if (isset($_SESSION['id_user'])) {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Administrador | VMS</title>
-        <!-- Favicon -->
-        <!-- <link rel="icon" type="image/png" href="img/favicon.png?update=<?php echo rand(); ?>"> -->
-        <!-- Favicon -->
+
         <link rel="icon" type="image/png" href="img/favicon-96x96.png" sizes="96x96" />
         <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
         <link rel="shortcut icon" href="img/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="img/apple-touch-icon.png" />
         <link rel="manifest" href="img/site.webmanifest" />
 
-        <!-- Font Awesome -->
         <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
-
-        <!-- Bootstrap -->
         <link href="assets/bootstrap-5-02/css/bootstrap.min.css" rel="stylesheet">
 
-        <!-- Jquey -->
         <script src="assets/js/jquery-3.6.3.min.js"></script>
-        <!-- <script src=" https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script> -->
 
-        <!-- Validate jq -->
         <script src="assets/js/validate/jquery.validate.min.js"></script>
         <script src="assets/js/validate/additional-methods.min.js"></script>
-        <!-- Incluir el archivo de traducción al español -->
         <script src="assets/js/validate/messages_es.min.js"></script>
 
-        <!-- Datatables -->
         <link rel="stylesheet" href="assets/datatables/css/jquery.dataTables.min.css">
         <link rel="stylesheet" href="assets/datatables/css/fixedHeader.dataTables.min.css">
 
-        <!-- CSS  AlertifyJS -->
         <link rel="stylesheet" href="assets/alertify/css/alertify.min.css" />
-        <!-- Default theme -->
         <link rel="stylesheet" href="assets/alertify/css/default.min.css" />
-        <!-- Semantic UI theme -->
         <link rel="stylesheet" href="assets/alertify/css/semantic.min.css" />
-        <!-- Bootstrap theme -->
         <link rel="stylesheet" href="assets/alertify/css/bootstrap.min.css" />
-        <!-- JavaScript Alertify -->
         <script src="assets/alertify/js/alertify.min.js"></script>
 
-        <!-- Tags Input -->
         <link rel="stylesheet" href="dist/tagsinput/bootstrap-tagsinput.css">
-        <!--link rel="stylesheet" href="dist/tagsinput/app.css"-->
 
-
-        <!-- Custom -->
         <link href="assets/css/navbar-styles.css" rel="stylesheet">
         <link href="assets/css/style-modulos.css" rel="stylesheet">
 
@@ -129,11 +304,8 @@ if (isset($_SESSION['id_user'])) {
         ?>
 
         <style>
-            /* FULL SCREEN */
-
             #modalSpiner .modal-content {
                 background-color: rgba(0, 0, 0, 0.3);
-                /* Fondo opaco */
             }
 
             #preloader {
@@ -151,7 +323,6 @@ if (isset($_SESSION['id_user'])) {
                 color: #666666 !important;
                 background-color: #E3EBF7 !important;
                 padding: 0.2rem 0.5rem 0.2rem 0.5rem;
-                /* up  start down end */
                 border-radius: 5px;
                 margin-top: 15px !important;
                 margin-bottom: 15px !important;
@@ -170,11 +341,6 @@ if (isset($_SESSION['id_user'])) {
                 border-color: #032759ff !important;
             }
 
-
-
-            /*
-Toolt tips personalizados utilizando data-title
-*/
             [data-title]:hover:after {
                 opacity: 1;
                 transition: all 0.1s ease 0.5s;
@@ -199,7 +365,6 @@ Toolt tips personalizados utilizando data-title
                 visibility: hidden;
                 border-radius: 6px;
                 border-color: #E3EBF7;
-
             }
 
             [data-title] {
@@ -216,14 +381,6 @@ Toolt tips personalizados utilizando data-title
                 color: #000 !important;
             }
 
-            /*
-            span{        
-                position:relative;
-                display:block;        
-                box-shadow:1px 1px 3px gray;
-                   
-            }
-            */
             .alertify-notifier .ajs-message.ajs-custom {
                 background: transparent;
                 box-shadow: none;
@@ -238,18 +395,14 @@ Toolt tips personalizados utilizando data-title
     </head>
 
     <body class="hold-transition sidebar-mini layout-fixed">
-        <!-- Preloader -->
         <div id="spinner" style="display: none;">
             <div class="spinner-border text-warning" style="width: 10rem; height: 10rem;" role="status">
                 <span class="visually-hidden">Cargando...</span>
             </div>
-            <!-- <img src="img/loaders/volta-logo.png" alt="Volta"> -->
         </div>
 
         <div class="wrapper">
-            <!-- Navbar -->
             <?php include "php/navbar.php"; ?>
-            <!-- /.navbar -->
 
             <div class="content-wrapper">
                 <?php
@@ -257,45 +410,25 @@ Toolt tips personalizados utilizando data-title
                 include 'php/footer.php';
                 ?>
             </div>
-            <!-- /.content-wrapper -->
         </div>
-        <!-- ./wrapper -->
 
-
-        <!-- jQuery -->
-        <!-- <script src="assets/js/jquery-3.6.3.min.js"></script> -->
-
-        <!-- Bootstrap -->
         <script src="assets/bootstrap-5-02/js/bootstrap.bundle.min.js"></script>
 
-        <!-- DataTables core -->
         <script src="assets/datatables/js/jquery.dataTables.min.js"></script>
-        <!-- Integración Bootstrap -->
         <script src="assets/datatables/js/dataTables.bootstrap5.min.js"></script>
-
-        <!-- Extensiones que SÍ tengas físicamente -->
         <script src="assets/datatables/js/dataTables.responsive.min.js"></script>
-        <!-- (Quita responsive.bootstrap5.min.js si no existe para evitar 404) -->
-        <!-- <script src="assets/datatables/js/responsive.bootstrap5.min.js"></script> -->
-
         <script src="assets/datatables/js/dataTables.buttons.min.js"></script>
-        <!-- (Quita buttons.bootstrap5.min.js si no existe) -->
-        <!-- <script src="assets/datatables/js/buttons.bootstrap5.min.js"></script> -->
         <script src="assets/datatables/js/jszip.min.js"></script>
         <script src="assets/datatables/js/buttons.html5.min.js"></script>
         <script src="assets/datatables/js/buttons.print.min.js"></script>
 
-        <!-- Alertify (si lo usas) -->
         <script src="assets/alertify/js/alertify.min.js"></script>
 
-        <!-- jQuery Validate (después de jQuery y antes de cualquier código que lo use) -->
         <script src="assets/js/validate/jquery.validate.min.js"></script>
         <script src="assets/js/validate/additional-methods.min.js"></script>
         <script src="assets/js/validate/messages_es.min.js"></script>
 
-
         <script>
-            // Inicializar tooltips (una sola vez)
             document.addEventListener('DOMContentLoaded', function() {
                 const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                 tooltipTriggerList.forEach(function(el) {
@@ -303,79 +436,14 @@ Toolt tips personalizados utilizando data-title
                 });
             });
 
-            // Búsqueda simple en el select del modal (si existe)
-            document.addEventListener('DOMContentLoaded', function() {
-                const filtro = document.getElementById('filtroEmpresas');
-                const select = document.getElementById('empresaSelect');
-                if (filtro && select) {
-                    filtro.addEventListener('input', function() {
-                        const term = this.value.toLowerCase();
-                        const opts = select.querySelectorAll('option');
-                        opts.forEach(o => {
-                            if (!o.value) return; // deja el placeholder
-                            o.style.display = o.textContent.toLowerCase().includes(term) ? '' : 'none';
-                        });
-                    });
-                }
-            });
-
-            // Fallback para abrir el modal si algún data-attribute no dispara
-            document.addEventListener('click', function(e) {
-                const btn = e.target.closest('[data-bs-target="#modalEmpresas"]');
-                if (!btn) return;
-                const modalEl = document.getElementById('modalEmpresas');
-                if (!modalEl) return;
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl, {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                modal.show();
-            });
-
-            function fnCambiarEmpresa() {
-                const idEmpresa = $('#empresaSelect').val();
-                if (!idEmpresa) {
-                    alertify.error('Selecciona una empresa');
-                    return;
-                }
-
-                $.ajax({
-                    url: 'ajax/usuarios/cambiar-empresa.php',
-                    type: 'POST',
-                    data: {
-                        id_empresa: idEmpresa
-                    },
-                    success: function(res) {
-                        try {
-                            const json = typeof res === 'string' ? JSON.parse(res) : res;
-                            if (json.success) {
-                                window.location.reload();
-                            } else {
-                                alertify.error(json.message || "No se pudo cambiar la empresa.");
-                            }
-                        } catch (e) {
-                            alertify.error("Error procesando la respuesta del servidor");
-                            console.error(res);
-                        }
+            <?php if ($mensajeModuloDeshabilitado !== ''): ?>
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (typeof alertify !== 'undefined') {
+                        alertify.error('<?php echo addslashes($mensajeModuloDeshabilitado); ?>');
                     }
                 });
-            }
+            <?php endif; ?>
 
-            // Mostrar modal al cargar si aplica
-            document.addEventListener('DOMContentLoaded', function() {
-                <?php if ($mostrar_modal): ?>
-                    const modalEl = document.getElementById('modalEmpresas');
-                    if (modalEl) {
-                        const modal = new bootstrap.Modal(modalEl, {
-                            backdrop: 'static',
-                            keyboard: false
-                        });
-                        modal.show();
-                    }
-                <?php endif; ?>
-            });
-
-            // Spinner
             document.body.classList.add('loading');
             window.onload = function() {
                 document.getElementById('spinner').style.display = 'none';
