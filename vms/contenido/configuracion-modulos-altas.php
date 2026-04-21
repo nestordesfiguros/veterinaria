@@ -20,7 +20,9 @@ $listaPaquetes = $clsConsulta->consultaGeneral("
     SELECT id, clave, nombre
     FROM configuracion_paquetes
     WHERE estatus = 'activo'
-    ORDER BY nombre ASC
+    ORDER BY
+        CASE WHEN clave = 'base' THEN 0 ELSE 1 END,
+        nombre ASC
 ");
 $totalPaquetes = $clsConsulta->numrows;
 ?>

@@ -59,13 +59,13 @@ if (
     return;
 }
 
-// 3) Obtener hijos visibles por jerarquía/permisos base
+// 3) Obtener hijos visibles base
 $hijos = permisosHijos::obtenerHijosVisibles($idPadre);
 if (empty($hijos)) {
     return;
 }
 
-// 4) Filtrar hijos contra permisos explícitos y switch backdoor
+// 4) Filtrar hijos por permisos y por switch backdoor
 $hijosFiltrados = [];
 foreach ($hijos as $idHijo) {
     $idHijo = (int)$idHijo;

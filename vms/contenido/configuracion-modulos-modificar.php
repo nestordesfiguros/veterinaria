@@ -40,7 +40,9 @@ $listaPaquetes = $clsConsulta->consultaGeneral("
     SELECT id, clave, nombre
     FROM configuracion_paquetes
     WHERE estatus = 'activo'
-    ORDER BY nombre ASC
+    ORDER BY
+        CASE WHEN clave = 'base' THEN 0 ELSE 1 END,
+        nombre ASC
 ");
 $totalPaquetes = $clsConsulta->numrows;
 
@@ -121,15 +123,33 @@ if ($registro) {
                                         <select class="form-select" id="paquete_origen" name="paquete_origen">
                                             <option value="">Sin paquete</option>
                                             <?php
+                                            $paqueteActualExiste = false;
+
                                             if ($totalPaquetes > 0) {
                                                 for ($i = 1; $i <= $totalPaquetes; $i++) {
-                                                    $selected = ((string)$registro['paquete_origen'] === (string)$listaPaquetes[$i]['clave']) ? 'selected' : '';
+                                                    $clavePaquete = (string)$listaPaquetes[$i]['clave'];
+                                                    $selected = ((string)$registro['paquete_origen'] === $clavePaquete) ? 'selected' : '';
+
+                                                    if ((string)$registro['paquete_origen'] === $clavePaquete) {
+                                                        $paqueteActualExiste = true;
+                                                    }
                                             ?>
-                                                    <option value="<?= htmlspecialchars($listaPaquetes[$i]['clave'], ENT_QUOTES, 'UTF-8'); ?>" <?= $selected; ?>>
+                                                    <option value="<?= htmlspecialchars($clavePaquete, ENT_QUOTES, 'UTF-8'); ?>" <?= $selected; ?>>
                                                         <?= htmlspecialchars($listaPaquetes[$i]['nombre'], ENT_QUOTES, 'UTF-8'); ?>
                                                     </option>
-                                            <?php
+                                                <?php
                                                 }
+                                            }
+
+                                            if (
+                                                !empty($registro['paquete_origen']) &&
+                                                !$paqueteActualExiste
+                                            ) {
+                                                ?>
+                                                <option value="<?= htmlspecialchars((string)$registro['paquete_origen'], ENT_QUOTES, 'UTF-8'); ?>" selected>
+                                                    <?= htmlspecialchars((string)$registro['paquete_origen'] . ' (actual)', ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php
                                             }
                                             ?>
                                         </select>

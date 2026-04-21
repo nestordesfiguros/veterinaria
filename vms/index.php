@@ -14,6 +14,10 @@ $time = date("H:i:s");
 if (isset($_SESSION['id_user'])) {
     require('php/menu.php');
 
+    /* =========================
+   Configuración global de módulos por instalación
+   ========================= */
+
     if (!function_exists('vmsTablaExiste')) {
         function vmsTablaExiste($clsConsulta, string $tabla): bool
         {
@@ -41,20 +45,20 @@ if (isset($_SESSION['id_user'])) {
             }
 
             $sql = "
-                SELECT
-                    cm.modulo_id,
-                    cm.habilitado,
-                    cm.visible_menu,
-                    cm.visible_busqueda,
-                    cm.obligatorio,
-                    cm.forzar_oculto_si_padre_off,
-                    cm.orden_override,
-                    cm.paquete_origen,
-                    m.archivo,
-                    m.modulo_padre
-                FROM configuracion_modulos cm
-                INNER JOIN modulos m ON m.id = cm.modulo_id
-            ";
+            SELECT
+                cm.modulo_id,
+                cm.habilitado,
+                cm.visible_menu,
+                cm.visible_busqueda,
+                cm.obligatorio,
+                cm.forzar_oculto_si_padre_off,
+                cm.orden_override,
+                cm.paquete_origen,
+                m.archivo,
+                m.modulo_padre
+            FROM configuracion_modulos cm
+            INNER JOIN modulos m ON m.id = cm.modulo_id
+        ";
             $res = $clsConsulta->consultaGeneral($sql);
 
             if ((int)$clsConsulta->numrows > 0) {
@@ -64,6 +68,7 @@ if (isset($_SESSION['id_user'])) {
                     }
 
                     $moduloId = (int)$fila['modulo_id'];
+
                     $filaNormalizada = [
                         'modulo_id' => $moduloId,
                         'habilitado' => isset($fila['habilitado']) ? (int)$fila['habilitado'] : 1,
@@ -99,14 +104,14 @@ if (isset($_SESSION['id_user'])) {
                 return null;
             }
 
-            if (isset($configuracionPorArchivo[$archivo]['modulo_id'])) {
-                return (int)$configuracionPorArchivo[$archivo]['modulo_id'];
-            }
-
             foreach ($modulosSesion as $idModulo => $modulo) {
                 if (($modulo['archivo'] ?? '') === $archivo) {
                     return (int)$idModulo;
                 }
+            }
+
+            if (isset($configuracionPorArchivo[$archivo]['modulo_id'])) {
+                return (int)$configuracionPorArchivo[$archivo]['modulo_id'];
             }
 
             return null;
@@ -180,6 +185,7 @@ if (isset($_SESSION['id_user'])) {
                     if ((int)$configuracionPorId[$idPadre]['habilitado'] !== 1) {
                         return false;
                     }
+
                     if ((int)$configuracionPorId[$idPadre]['visible_menu'] !== 1) {
                         return false;
                     }
